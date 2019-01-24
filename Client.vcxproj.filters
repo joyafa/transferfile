@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="third\crc32\crc32.c">
+      <Filter>third\crc32</Filter>
+    </ClCompile>
+    <ClCompile Include="third\log\src\log.cpp">
+      <Filter>third\log</Filter>
+    </ClCompile>
+    <ClCompile Include="third\log\src\LogFile.cpp">
+      <Filter>third\log</Filter>
+    </ClCompile>
+    <ClCompile Include="third\md5\md5.cpp">
+      <Filter>third\md5</Filter>
+    </ClCompile>
+    <ClCompile Include="client\main.cpp" />
+    <ClCompile Include="client\file_socket.cpp" />
+    <ClCompile Include="client\protocol.pb.cc" />
+    <ClCompile Include="client\protocol_head.cpp" />
+    <ClCompile Include="client\fmmap.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="third">
+      <UniqueIdentifier>{df973308-3739-4a34-b285-931d16036a4c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="third\crc32">
+      <UniqueIdentifier>{865d9340-829c-4052-abaf-aac5b32f8d02}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="third\md5">
+      <UniqueIdentifier>{66e777a8-5edd-4b07-ae79-dfa22bca185e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="third\log">
+      <UniqueIdentifier>{2cbfd02b-327f-494d-b57d-19fa1fd21737}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="third\crc32\crc32.h">
+      <Filter>third\crc32</Filter>
+    </ClInclude>
+    <ClInclude Include="third\log\include\Exception.h">
+      <Filter>third\log</Filter>
+    </ClInclude>
+    <ClInclude Include="third\log\include\log.h">
+      <Filter>third\log</Filter>
+    </ClInclude>
+    <ClInclude Include="third\log\include\LogFile.h">
+      <Filter>third\log</Filter>
+    </ClInclude>
+    <ClInclude Include="third\md5\md5.h">
+      <Filter>third\md5</Filter>
+    </ClInclude>
+    <ClInclude Include="client\file_socket.h" />
+    <ClInclude Include="client\protocol_head.h" />
+    <ClInclude Include="client\protocol.pb.h" />
+    <ClInclude Include="client\fmmap.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="third\log\include\Makefile">
+      <Filter>third\log</Filter>
+    </None>
+  </ItemGroup>
+</Project>

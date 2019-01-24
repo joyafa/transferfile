@@ -1,0 +1,35 @@
+syntax = "proto2";
+package FileTransport;
+
+//common response
+message rsponse_result {
+	required int32 code  = 1;
+	required string msg  = 2;
+	optional string data = 3;
+}
+
+//send file general info 
+message generalinfo_request {
+	required string fileName   = 1;
+	required int32  fileLength = 2;
+	required string md5        = 3;
+	required int32  pieces     = 4;
+}
+
+message send_filecontent_request {
+	required int32 offset   = 1;
+    required int32 pices    = 2;
+	required int32 length   = 3;
+	required bytes data     = 4;//binrary data
+	required int32 crc32    = 5;
+}
+
+//TODO
+message verify_filecontent_request {
+	required string mobile = 1;
+    required int32 amount  = 2;
+}
+
+message send_complete_request {
+
+}

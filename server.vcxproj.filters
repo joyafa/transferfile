@@ -1,0 +1,143 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="third">
+      <UniqueIdentifier>{eb5e9975-5cc9-4d0f-8c65-674e5db9563b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="third\md5">
+      <UniqueIdentifier>{3133b57f-eba5-4695-91e0-14cf9e104e0e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="third\crc32">
+      <UniqueIdentifier>{ff17aa65-7bac-4f63-9768-b28e801e2513}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="third\log">
+      <UniqueIdentifier>{aeea68d2-cf8d-455b-856e-0970ac30a9c0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="bus">
+      <UniqueIdentifier>{45701911-dcf1-40e5-ba88-e176882387b4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="intf">
+      <UniqueIdentifier>{1c6d1f78-07ed-4aec-976d-d9ff725a8c22}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="service">
+      <UniqueIdentifier>{2054c778-2682-4dec-a395-847777094ca5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="common">
+      <UniqueIdentifier>{a2117ea5-9e66-4132-97d0-c80ef25e7716}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="third\crc32\crc32.c">
+      <Filter>third\crc32</Filter>
+    </ClCompile>
+    <ClCompile Include="third\md5\md5.cpp">
+      <Filter>third\md5</Filter>
+    </ClCompile>
+    <ClCompile Include="third\log\src\log.cpp">
+      <Filter>third\log</Filter>
+    </ClCompile>
+    <ClCompile Include="third\log\src\LogFile.cpp">
+      <Filter>third\log</Filter>
+    </ClCompile>
+    <ClCompile Include="server\main.cpp" />
+    <ClCompile Include="server\service\DispatchMsgService.cpp">
+      <Filter>service</Filter>
+    </ClCompile>
+    <ClCompile Include="server\service\MsgQueue.cpp">
+      <Filter>service</Filter>
+    </ClCompile>
+    <ClCompile Include="server\intf\binrary_codec.cpp">
+      <Filter>intf</Filter>
+    </ClCompile>
+    <ClCompile Include="server\intf\file_socket.cpp">
+      <Filter>intf</Filter>
+    </ClCompile>
+    <ClCompile Include="server\intf\interface.cpp">
+      <Filter>intf</Filter>
+    </ClCompile>
+    <ClCompile Include="server\intf\protocol_head.cpp">
+      <Filter>intf</Filter>
+    </ClCompile>
+    <ClCompile Include="server\common\event.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="server\common\events_def.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="server\common\fmmap.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="server\intf\protobuf_protocol_codec_t.cpp">
+      <Filter>intf</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="third\crc32\crc32.h">
+      <Filter>third\crc32</Filter>
+    </ClInclude>
+    <ClInclude Include="third\md5\md5.h">
+      <Filter>third\md5</Filter>
+    </ClInclude>
+    <ClInclude Include="third\log\include\Exception.h">
+      <Filter>third\log</Filter>
+    </ClInclude>
+    <ClInclude Include="third\log\include\log.h">
+      <Filter>third\log</Filter>
+    </ClInclude>
+    <ClInclude Include="third\log\include\LogFile.h">
+      <Filter>third\log</Filter>
+    </ClInclude>
+    <ClInclude Include="server\service\DispatchMsgService.h">
+      <Filter>service</Filter>
+    </ClInclude>
+    <ClInclude Include="server\service\MsgQueue.h">
+      <Filter>service</Filter>
+    </ClInclude>
+    <ClInclude Include="server\intf\binrary_codec.h">
+      <Filter>intf</Filter>
+    </ClInclude>
+    <ClInclude Include="server\intf\file_socket.h">
+      <Filter>intf</Filter>
+    </ClInclude>
+    <ClInclude Include="server\intf\interface.h">
+      <Filter>intf</Filter>
+    </ClInclude>
+    <ClInclude Include="server\intf\protocol_codec.h">
+      <Filter>intf</Filter>
+    </ClInclude>
+    <ClInclude Include="server\intf\protocol_head.h">
+      <Filter>intf</Filter>
+    </ClInclude>
+    <ClInclude Include="server\common\event.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="server\common\events_def.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="server\common\eventtype.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="server\common\fmmap.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="server\intf\protobuf_protocol_codec_t.h">
+      <Filter>intf</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="third\log\include\Makefile">
+      <Filter>third\log</Filter>
+    </None>
+    <None Include="server\intf\protocol.proto">
+      <Filter>intf</Filter>
+    </None>
+    <None Include="server\bus\hanbdler">
+      <Filter>bus</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="third\log\src\CMakeLists.txt">
+      <Filter>third\log</Filter>
+    </Text>
+  </ItemGroup>
+</Project>
