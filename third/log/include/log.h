@@ -23,6 +23,7 @@
 #include <vector>
 #include <memory>
 #include <atomic>
+#include <sys/stat.h>
 #include <mutex>
 namespace LOG {
 
@@ -83,6 +84,7 @@ namespace LOG {
                 std::invalid_argument&) {
             if (false != _Initilized)
                 return;
+			mkdir(nsDir.c_str(), 0666);
             //Lock
             std::lock_guard<std::mutex> llock(_initMutex);
             

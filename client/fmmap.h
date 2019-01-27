@@ -1,7 +1,7 @@
 #pragma once
 #include <sys/types.h>
 #include <string>
-
+#include <sys/mman.h>
 class CFileMap
 {
 public:
@@ -10,6 +10,10 @@ public:
 
 	virtual ~CFileMap();
 
+	bool CheckFileMapStatus()const
+	{
+		return (MAP_FAILED != _pHandle);
+	}
 	//seek
 	off_t seek(off_t offset, int where);
 

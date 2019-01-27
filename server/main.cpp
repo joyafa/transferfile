@@ -5,6 +5,7 @@
 #include "event.h"
 #include <iostream>
 #include <sys/epoll.h>
+#include "log.h"
 
 using namespace std;
 #define PORT 1688
@@ -23,6 +24,8 @@ int main(int argc, char** argv)
 		usage();
 		exit(1);
 	}
+	LOG_INIT("log");
+	cout << "Server is ready..." << endl;
 	//conf
     std::shared_ptr<DispatchMsgService> dms(new DispatchMsgService);
 	dms->open(); //Æô¶¯Ïß³Ì
@@ -34,18 +37,22 @@ int main(int argc, char** argv)
 	int server_socket = create_and_bind_socket(atoi(argv[1]));
 	if (server_socket < 0)
 	{
+		LOG_ERROR("Bind socket port:%s failed!", argv[1]);
 		exit(1);
 	}
+	LOG_INFO("Bind port:%s OK", argv[1]);
 	//set no block
 	int ret = set_socket_non_block(server_socket);
 	if (ret < 0 )
 	{
+		LOG_ERROR("Set fd non block error!");
 		exit(1);
 	}
 	//listen 
 	bool bret = intf.add_server_socket(server_socket);
 	if (!bret)
 	{
+		LOG_ERROR("add erver socket error!");
 		exit(1);
 	}
 	////EPOLL_CTL_ADD
@@ -56,7 +63,7 @@ int main(int argc, char** argv)
 	//}
 	//accept & message process
 	intf.run();
-
+	cout << "Server is running..." << endl;
 	//main thread loop
 	for (;;);
 	

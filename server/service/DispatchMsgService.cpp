@@ -2,6 +2,7 @@
 #include "log.h"
 #include "binrary_codec.h"
 #include <algorithm>
+#include <thread>
 #include "protobuf_protocol_codec_t.h"
 
 #define MAX_ITEM_IN_MSG_QUEUE 65536
@@ -118,6 +119,7 @@ void* DispatchMsgService::svc(void* argv)
         /* wait only 1 ms to dequeue */
         if (-1 == dms->msg_queue_.dequeue(fd, 1))
         {
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
             continue;
         }
 

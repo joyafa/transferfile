@@ -46,7 +46,7 @@ void LogFile::write(const char *format, va_list args)
         }
 
         //Create a new one
-        _fileHandle = fopen(lsFilePath.c_str(), "a");
+        _fileHandle = fopen(lsFilePath.c_str(), "a+w");
 
         //failed to create file the throw a exception
         if (_fileHandle == nullptr)
@@ -67,6 +67,7 @@ void LogFile::write(const char *format, va_list args)
     vfprintf(_fileHandle, format, args);
     //write the '\n'
     fprintf(_fileHandle, "\n");
+	fflush(_fileHandle);
     //done
     if (ferror(_fileHandle))
         throw FileWriteFailedException(_currentFilePath);
