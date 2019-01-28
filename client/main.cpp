@@ -16,6 +16,7 @@
 #include "log.h"
 #include "fmmap.h"
 #include <sys/wait.h>
+#include <thread>
 
 using namespace std;
 using namespace FileTransport;
@@ -61,7 +62,6 @@ size_t getfile_length(const char* filename)
 	len = end - beg;
 #endif
 	close(fd);
-	cout << len << endl;
 
 	return len;
 }
@@ -167,9 +167,11 @@ int main(int argc, char** argv)
 	}
 	//step3 cal the number of process, according to file size
 	int nProcess = fileLength % EACH_PIECES_LENGTH ? (fileLength / EACH_PIECES_LENGTH + 1) : (fileLength / EACH_PIECES_LENGTH);
-	LOG_INFO("Send file length:%d", nProcess);
+	LOG_INFO("the number of processes:%d", nProcess);
 	//step4 connect server
-	int sockfd = init_client(argv[2], atoi(argv[3]));
+	int sockfd = 0;
+#if 1
+	sockfd = init_client(argv[2], atoi(argv[3]));
 	if (sockfd < 0)
 	{
 		LOG_ERROR("Connect server error!!");
@@ -183,13 +185,14 @@ int main(int argc, char** argv)
 	//step5 send file info
 	//TODO: 有点问题,文件长度 原来读取的是比较大的长度 size_t ,现在当成 uint32传到对方,待改???
 	send_file_info(strFileName, strMd5, fileLength, nProcess, sockfd);
-
+	LOG_INFO("Close socket:%d ok!", sockfd);
+	close(sockfd);
+#endif
 	//step6  map file
 	CFileMap fm(strFileName.c_str(), O_RDONLY, fileLength);
 	if (!fm.CheckFileMapStatus())
 	{
 		perror("Map file failed!!");
-		close(sockfd);
 		exit(1);
 	}
 	//step5 fork sub process to send file 
@@ -222,8 +225,8 @@ int main(int argc, char** argv)
 		//parent create evenfd for statices the send results
 		//eventfd怎么接收
 		//check_is_send_over();
-		cout << "文件发送完成!" << endl;
-
+		//cout << "Send file completed, close socket!!" << endl;
+		//close(sockfd);
 		// if child process exit with -1 then exit parent process.
 		// if child process exit with not -1 then restart child process
 		int status = 0;
@@ -254,11 +257,24 @@ int main(int argc, char** argv)
 				processid = fork();  // restart an child process.
 				if (processid == 0) break;  // break while.
 			}
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 	}
 	if (0 == processid)//child process
 	{
 		LOG_INFO("this is child process pid=%d (parentid)=%d", getpid(), getppid());
+
+		//child conenct server
+		sockfd = init_client(argv[2], atoi(argv[3]));
+		if (sockfd < 0)
+		{
+			LOG_ERROR("child process Connect server error!!");
+
+			exit(1);
+		}
+		LOG_INFO("child process connect:%s:%s ok!", argv[2], argv[3]);
+
+		set_socket_non_block(sockfd);
 
 		//child process send pieces
 		//读取文件的开始位置
@@ -275,32 +291,41 @@ int main(int argc, char** argv)
 			if (len > 0)
 			{
 				std::string msg = encode_filecontent(nPiece, idx, buf, len);
-				cout << "Process:" << getpid() << "Piece:" << nPiece << " ,idx:" << idx << ", len=" << len << endl;
+				cout << "Process:" << getpid() << ", Piece:" << nPiece << " ,idx:" << idx << ", len=" << len << endl;
 				protocol_head_t head;
 				bzero(&head, sizeof(head));
 				encode_head(head, EEVENTID_SENDD_FILEDATA_REQ, msg.size());
 				int packlen = sizeof(protocol_head_t) + msg.size();
+				char* pSendBuff = new char[packlen];
 				//senddata
-				nio_write(sockfd, buf, packlen);
+				//TODO: server recv has sm problem
+				memcpy(pSendBuff, &head, sizeof(protocol_head_t));
+				memcpy(pSendBuff + sizeof(protocol_head_t), msg.data(), msg.size());
+				len = nio_write(sockfd, pSendBuff, packlen);
+				delete[] pSendBuff;
+				LOG_INFO("SendData len:%d", len);
 				//TODO: recv response, header + body
 				int ret = 0;
-				//nio_recv(sockfd, resp, sizeof(resp), &ret);
+				//nio_recv(sfd, resp, sizeof(resp), &ret);
 			}
 			else
 			{
 				break;
 			}
 		}
-		LOG_ERROR("child process exit");
+		close(sockfd);
+		LOG_INFO("child process exit");
 	}
 
-	for (;;);
+	for (;;)
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
 	
 	//event怎么通知, 应该还要通知发送的状态,发送了多少了, 
 	//记录发送时间
 	//eventfd notice parent process
-	cout << "文件片: 发送完成" << endl;
-	close(sockfd);
+	cout << "File send over" << endl;
 
 	return 1;
 }

@@ -36,7 +36,7 @@ void LogFile::write(const char *format, va_list args)
 
         //Construct the new name
         std::ostringstream lsFilePathString;
-        lsFilePathString << _fileDir << "/" << _prefixFileName << "_" << lvtm.tm_year+1900 << lvtm.tm_mon << lvtm.tm_mday << ".log";
+        lsFilePathString << _fileDir << "/" << _prefixFileName << "_" << lvtm.tm_year+1900 << lvtm.tm_mon+1 << lvtm.tm_mday << ".log";
         std::string lsFilePath = lsFilePathString.str();
 
         //Close the older one if the older one is existing
@@ -61,7 +61,7 @@ void LogFile::write(const char *format, va_list args)
   
     //write the base information
     std::ostringstream lsAux ;
-    lsAux << lvtm.tm_hour << ":" << lvtm.tm_min << ":"<< lvtm.tm_sec<< "- TID" << std::this_thread::get_id() <<":";
+    lsAux << lvtm.tm_hour << ":" << lvtm.tm_min << ":"<< lvtm.tm_sec<< "- TID:" << std::this_thread::get_id() <<":";
     fprintf(_fileHandle, "%s", lsAux.str().c_str());
     //write the parameter information
     vfprintf(_fileHandle, format, args);

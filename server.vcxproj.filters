@@ -70,6 +70,9 @@
     <ClCompile Include="server\intf\protobuf_protocol_codec_t.cpp">
       <Filter>intf</Filter>
     </ClCompile>
+    <ClCompile Include="server\intf\protocol.pb.cc">
+      <Filter>intf</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="third\crc32\crc32.h">
@@ -121,6 +124,9 @@
       <Filter>common</Filter>
     </ClInclude>
     <ClInclude Include="server\intf\protobuf_protocol_codec_t.h">
+      <Filter>intf</Filter>
+    </ClInclude>
+    <ClInclude Include="server\intf\protocol.pb.h">
       <Filter>intf</Filter>
     </ClInclude>
   </ItemGroup>

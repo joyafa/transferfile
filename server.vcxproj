@@ -68,6 +68,7 @@
     <ClCompile Include="server\intf\file_socket.cpp" />
     <ClCompile Include="server\intf\interface.cpp" />
     <ClCompile Include="server\intf\protobuf_protocol_codec_t.cpp" />
+    <ClCompile Include="server\intf\protocol.pb.cc" />
     <ClCompile Include="server\intf\protocol_head.cpp" />
     <ClCompile Include="server\main.cpp" />
     <ClCompile Include="server\service\DispatchMsgService.cpp" />
@@ -86,6 +87,7 @@
     <ClInclude Include="server\intf\file_socket.h" />
     <ClInclude Include="server\intf\interface.h" />
     <ClInclude Include="server\intf\protobuf_protocol_codec_t.h" />
+    <ClInclude Include="server\intf\protocol.pb.h" />
     <ClInclude Include="server\intf\protocol_codec.h" />
     <ClInclude Include="server\intf\protocol_head.h" />
     <ClInclude Include="server\service\DispatchMsgService.h" />

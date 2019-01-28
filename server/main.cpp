@@ -62,8 +62,8 @@ int main(int argc, char** argv)
 	//	exit(1);
 	//}
 	//accept & message process
-	intf.run();
 	cout << "Server is running..." << endl;
+	intf.run();
 	//main thread loop
 	for (;;);
 	

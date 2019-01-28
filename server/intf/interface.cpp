@@ -41,6 +41,7 @@ bool Interface::add_epoll_event(file_socket_t socket, int events)
     if (ret == -1)
     {
         LOG_ERROR("can not add event to epoll_fd_!\n");
+
         return false;
     }
 
@@ -74,6 +75,7 @@ bool Interface::add_server_socket(int socket)
 
 	if (!add_epoll_event(_server_socket, EPOLLIN | EPOLLOUT | EPOLLET))
 	{
+		LOG_ERROR("cannot add_epoll_event!");
 		return false;
 	}
 
@@ -90,7 +92,8 @@ bool Interface::accept_client(int sfd)
     {
        if (errno == EAGAIN || errno == EWOULDBLOCK)
        {
-           return true;
+		   LOG_ERROR("cannot accept err:%d", errno);
+		   return true;
        }
        else
        {
@@ -98,15 +101,18 @@ bool Interface::accept_client(int sfd)
            return false;
        }
     }
+	LOG_INFO("Client :%d connected", client_fd);
 
     int ret = set_socket_non_block(client_fd);
     if (ret == -1)
     {
-        LOG_ERROR("cannot set flags!\n");
+        LOG_ERROR("cannot set flags!");
     }
 
     if (!add_epoll_event(client_fd, EPOLLET | EPOLLIN))
     {
+		LOG_ERROR("add_epoll_event err!\n");
+
         return false;
     }
 
@@ -122,7 +128,6 @@ void Interface::run()
     {
         //block
         int cnt = epoll_wait(epoll_fd_, events, MAX_EVENTS, -1);
-
         for (int i = 0; i < cnt; i++)
         {
             if ((events[i].events & EPOLLERR) || (events[i].events & EPOLLHUP)
@@ -135,26 +140,25 @@ void Interface::run()
             }
             else if (events[i].data.fd == _server_socket)
             {
-                accept_client(events[i].data.fd);
+				LOG_INFO("====+>Srv socket:%d<=====", _server_socket);
+				accept_client(events[i].data.fd);
             }
             else
             {
-				//TODO: 这里可以fork 一个子进程用来接收和处理客户端请求,并应答回去
-				//if(0 == fork() ) //子进程
 				//recv
 				//......
 				//send
 				//将socket也丢给callback处理,加入queue
+				LOG_INFO("connect a clientfd: %d", events[i].data.fd);
 				_equeue(events[i].data.fd);
             }
         }
     }
-
-    return;
 }
 
 bool Interface::close()
 {
 	::close(_server_socket);
+	LOG_INFO("close server socket");
     return true;
 }

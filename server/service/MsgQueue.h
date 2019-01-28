@@ -40,9 +40,9 @@ class GenericQueue
 
         // methods
         virtual ~GenericQueue() {}
-        virtual int enqueue(T* item, int timeout = -1) = 0;
-        virtual int dequeue(T*& item, int timeout = -1) = 0;
-        virtual int peek(T*& item, int timeout = -1) = 0;
+        virtual int enqueue(T& item, int timeout = -1) = 0;
+        virtual int dequeue(T& item, int timeout = -1) = 0;
+        virtual int peek(T& item, int timeout = -1) = 0;
         virtual bool isFull() = 0;
         virtual bool isEmpty() = 0;
         virtual int queueStatus() = 0;
@@ -63,19 +63,19 @@ class MsgQueue
             m_delegate(GenericQueue<T>::CreateInstance(max_items)) {}
         virtual ~MsgQueue<T>() { delete m_delegate; }
 
-        virtual int enqueue(T* item, int timeout = 0)
+        virtual int enqueue(T& item, int timeout = 0)
         {
-            return m_delegate->enqueue(reinterpret_cast<T*>(item), timeout);
+            return m_delegate->enqueue(reinterpret_cast<T&>(item), timeout);
         }
 
-        virtual int dequeue(T*& item, int timeout = 0)
+        virtual int dequeue(T& item, int timeout = 0)
         {
-            return m_delegate->dequeue(reinterpret_cast<T*&>(item), timeout);
+            return m_delegate->dequeue(reinterpret_cast<T&>(item), timeout);
         }
 
-        virtual int peek(T*& item, int timeout = 0)
+        virtual int peek(T& item, int timeout = 0)
         {
-            return m_delegate->peek(reinterpret_cast<T*&>(item), timeout);
+            return m_delegate->peek(reinterpret_cast<T&>(item), timeout);
         }
 
         virtual int queueStatus()
@@ -106,9 +106,9 @@ class PosixQueue : public GenericQueue<T>
         // methods
         PosixQueue(unsigned int max_items);
         ~PosixQueue();
-        int enqueue(T* item, int timeout);
-        int dequeue(T*& item, int timeout);
-        int peek(T*& item, int timeout);
+        int enqueue(T& item, int timeout);
+        int dequeue(T& item, int timeout);
+        int peek(T& item, int timeout);
         bool isFull();
         bool isEmpty();
         int queueStatus();
@@ -125,7 +125,7 @@ class PosixQueue : public GenericQueue<T>
         pthread_cond_t          m_canPopCondition;
         int                     m_pushersWaitingCount;
         int                     m_poppersWaitingCount;
-        std::list<T*>           m_items;
+        std::list<T>           m_items;
         bool                    m_aborting;
 };
 
@@ -199,9 +199,6 @@ void PosixQueue<T>::abort()
 {
     pthread_cond_t abort_condition;
     pthread_cond_init(&abort_condition, NULL);
-    //QueueItem* item = NULL;
-    T* item = NULL;
-
     struct timespec timed;
     getTimeout(20, timed);
 
@@ -228,9 +225,7 @@ void PosixQueue<T>::abort()
 
     while (!m_items.empty())
     {
-        item = m_items.front();
         m_items.pop_front();
-        delete item;
     }
 
     m_items.clear();
@@ -268,7 +263,7 @@ int PosixQueue<T>::getTimeout(int timeout, struct timespec& timed)
   |       PosixQueue::enqueue
   +---------------------------------------------------------------------*/
 template <class T>
-int PosixQueue<T>::enqueue(T* item, int timeout)
+int PosixQueue<T>::enqueue(T& item, int timeout)
 {
     struct timespec timed;
     if (timeout != -1)
@@ -332,7 +327,7 @@ int PosixQueue<T>::enqueue(T* item, int timeout)
   |       PosixQueue::dequeue
   +---------------------------------------------------------------------*/
 template <class T>
-int PosixQueue<T>::dequeue(T*& item, int timeout)
+int PosixQueue<T>::dequeue(T& item, int timeout)
 {
     struct timespec timed;
     if (timeout != -1)
@@ -403,7 +398,7 @@ int PosixQueue<T>::dequeue(T*& item, int timeout)
   |       PosixQueue::Peek
   +---------------------------------------------------------------------*/
 template <class T>
-int PosixQueue<T>::peek(T*& item, int timeout)
+int PosixQueue<T>::peek(T& item, int timeout)
 {
     struct timespec timed;
     if (timeout != -1)
@@ -419,7 +414,7 @@ int PosixQueue<T>::peek(T*& item, int timeout)
 
     int result = 0;
 
-    typename std::list<T*>::iterator head = m_items.begin();
+    typename std::list<T>::iterator head = m_items.begin();
 
     if (timeout)
     {
