@@ -126,6 +126,6 @@ iEvent* protobuf_protocol_codec_t::decode_file_writefile_data(uint8_t* buffer, u
 	uint32_t crc32 = fileContent.crc32();
 	//TODO:输出二进制这里有问题的
 	LOG_INFO("FileContent:idx:%d,pieces:%d, len:%d, crc32:%u", idx, pieces, length, crc32);
-
+	LOG_INFO("file: %s", data.c_str());
 	return nullptr; // new;
 }

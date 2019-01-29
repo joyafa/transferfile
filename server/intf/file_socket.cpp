@@ -93,6 +93,7 @@ int nio_recv(int sockfd, char* buffer, int length, int* ret)
         {
 			*ret = -1;
 			::close(sockfd);
+			LOG_INFO("Client : %d exit!!!", sockfd);
 			break;
 		}
         else if (count == -1)

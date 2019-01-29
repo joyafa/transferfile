@@ -77,6 +77,7 @@ protocol_head_t& encode_head(protocol_head_t& head, WORD msgid, uint32_t len)
 	head.len_     = len;
 	//head.msg_sn = 1;
 	//head.reserve_ = 1;
+	LOG_INFO("encode_head: tag:%02X, type:%d, version:%02X, msgid:%d, len:%d,sn:%d, resv:%d ", head.tag_, head.type_, head.version_, head.msg_id_, head.len_, head.msg_sn, head.reserve_);
 }
 
 
@@ -128,16 +129,18 @@ uint32_t send_file_info(const std::string& strFileName, const std::string& strMd
 	bzero(buf, len);
 	/*memcpy(buf, &head, sizeof(protocol_head_t));*/
 	protocol_head_codec_t head_codec;
-	head_codec.encode(&head, (uint8_t* )buf, len);
+	head_codec.encode(&head, (uint8_t* )buf, sizeof(protocol_head_t));
 	memcpy(buf + sizeof(protocol_head_t), msg.data(), msg.size());
 	int ret = nio_write(fd, buf, len);
+	LOG_INFO("Send file content Data len:%d", ret);
 	//TODO:check response
+#if 0
 	nio_recv(fd, buf, sizeof(head), &ret);
 	bzero(&head, sizeof(head));
 	head_codec.decode((uint8_t* )buf, sizeof(head), &head);
 	nio_recv(fd, buf, head.len_, &ret);
     //TODO:check response
-
+#endif
 	delete[] buf;
 
 	return ret;
@@ -187,6 +190,7 @@ int main(int argc, char** argv)
 	send_file_info(strFileName, strMd5, fileLength, nProcess, sockfd);
 	LOG_INFO("Close socket:%d ok!", sockfd);
 	close(sockfd);
+	cout << "Send file info ok, close fd:" << sockfd << endl;
 #endif
 	//step6  map file
 	CFileMap fm(strFileName.c_str(), O_RDONLY, fileLength);
@@ -207,14 +211,14 @@ int main(int argc, char** argv)
 			LOG_ERROR("fork child task failed.");
 			break;
 		}
-		else if (processid == 0)  // this is child task
+		else if (processid == 0)  // this is child process
 		{
-			LOG_ERROR("this is child task.");
+			LOG_INFO("this is child process.");
 			break;
 		}
 		else if (processid > 0)
 		{
-			LOG_ERROR("this is parent task.");
+			LOG_INFO("this is parent process.");
 		}
 	}
 	if (processid > 0) //parent
@@ -297,13 +301,15 @@ int main(int argc, char** argv)
 				encode_head(head, EEVENTID_SENDD_FILEDATA_REQ, msg.size());
 				int packlen = sizeof(protocol_head_t) + msg.size();
 				char* pSendBuff = new char[packlen];
+				bzero(pSendBuff, packlen);
 				//senddata
 				//TODO: server recv has sm problem
-				memcpy(pSendBuff, &head, sizeof(protocol_head_t));
+				protocol_head_codec_t head_codec;
+				head_codec.encode(&head, (uint8_t*)pSendBuff, sizeof(protocol_head_t));
 				memcpy(pSendBuff + sizeof(protocol_head_t), msg.data(), msg.size());
 				len = nio_write(sockfd, pSendBuff, packlen);
 				delete[] pSendBuff;
-				LOG_INFO("SendData len:%d", len);
+				LOG_INFO("Send file content Data len:%d", len);
 				//TODO: recv response, header + body
 				int ret = 0;
 				//nio_recv(sfd, resp, sizeof(resp), &ret);
