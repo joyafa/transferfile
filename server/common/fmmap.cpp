@@ -27,9 +27,8 @@ CFileMap::CFileMap(const char *pathname, int flags, size_t filelength /*= 0*/)
 		LOG_ERROR("File length is zero!!");
 		return;
 	}
-
 	//open file
-	_fd = open(pathname, flags);
+	_fd = open(pathname, flags, 0664);
 	if (-1 == _fd)
 	{
 		LOG_ERROR("open file failed!");

@@ -24,7 +24,7 @@ bool protocol_head_codec_t::decode(uint8_t* buffer, uint32_t size, protocol_head
 bool protocol_head_codec_t::encode(protocol_head_t* head, uint8_t* buffer, uint32_t size)
 {
     assert(buffer != NULL);
-    assert(sizeof(head) <= size);
+    assert(sizeof(protocol_head_t) <= size);
 
     set_u16(buffer, size, HEAD_TAG_POS, head->tag_);
     set_byte(buffer, size, HEAD_VERSION_POS, head->version_);

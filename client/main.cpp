@@ -17,22 +17,15 @@
 #include "fmmap.h"
 #include <sys/wait.h>
 #include <thread>
-
+#include <sys/eventfd.h>
+#include "eventtype.h"
 using namespace std;
 using namespace FileTransport;
 
-/* 事件ID */
-enum EventID
-{
-	EEVENTID_COMMON_RSP         = 0x00,
-	EEVENTID_SEND_GENERAL_REQ   = 0x01, //发送文件基本信息,名称长度md5...
-	EEVENTID_SENDD_FILEDATA_REQ = 0x02,//发送文件内容
-	EEVENTID_UNKOWN             = 0xFFFF
-};
 
-const size_t EACH_PIECES_LENGTH = 100 * 1024 * 1024L; //100M 文件分片,文件片数,决定通过几个进程来发送
-const size_t EACH_FRAME_LENGTH  = 4 * 1024L; //4k 每帧数据长度,每次socket发送数据的长度
-#define MAKEVERSION(a, b)  ((BYTE)(((BYTE)(a)) & 0x0f) | (BYTE)((BYTE)(((BYTE)(b)) & 0x0f) << 4))
+//TODO: 文件怎么发送算是完毕;
+// 2 server 收到之后,需要保存md5....最后收到complete消息时候需要比较检查
+//3 多处代码,需要检查应答数据,加上应答日志.......
 //获取文件长度
 size_t getfile_length(const char* filename)
 {
@@ -67,14 +60,14 @@ size_t getfile_length(const char* filename)
 }
 
 
-protocol_head_t& encode_head(protocol_head_t& head, WORD msgid, uint32_t len)
+protocol_head_t& encode_head(protocol_head_t& head, WORD msgid, uint32_t bodyLength)
 {
 	//initial header
-	head.tag_     = 0xFBFC;
-	head.type_    = PB_PROTOCOL_TYPE;
+	head.tag_ = 0xFBFC;
+	head.type_ = PB_PROTOCOL_TYPE;
 	head.version_ = MAKEVERSION(1, 1);//1.1=>0x11
-	head.msg_id_  = msgid;// function
-	head.len_     = len;
+	head.msg_id_ = msgid;// function
+	head.len_ = bodyLength;
 	//head.msg_sn = 1;
 	//head.reserve_ = 1;
 	LOG_INFO("encode_head: tag:%02X, type:%d, version:%02X, msgid:%d, len:%d,sn:%d, resv:%d ", head.tag_, head.type_, head.version_, head.msg_id_, head.len_, head.msg_sn, head.reserve_);
@@ -127,24 +120,70 @@ uint32_t send_file_info(const std::string& strFileName, const std::string& strMd
 	int len = sizeof(protocol_head_t) + msg.size();
 	char* buf = new char[len];
 	bzero(buf, len);
-	/*memcpy(buf, &head, sizeof(protocol_head_t));*/
 	protocol_head_codec_t head_codec;
-	head_codec.encode(&head, (uint8_t* )buf, sizeof(protocol_head_t));
+	head_codec.encode(&head, (uint8_t*)buf, sizeof(protocol_head_t));
 	memcpy(buf + sizeof(protocol_head_t), msg.data(), msg.size());
 	int ret = nio_write(fd, buf, len);
-	LOG_INFO("Send file content Data len:%d", ret);
+	if (ret != len)
+	{
+		LOG_ERROR("Send send_file_info len:%d", ret);
+	}
+	LOG_INFO("Send send_file_info len:%d", ret);
+
 	//TODO:check response
-#if 0
-	nio_recv(fd, buf, sizeof(head), &ret);
-	bzero(&head, sizeof(head));
-	head_codec.decode((uint8_t* )buf, sizeof(head), &head);
-	nio_recv(fd, buf, head.len_, &ret);
-    //TODO:check response
+#if 1
+	len = nio_recv(fd, buf, sizeof(head), &ret);
+	LOG_INFO("nio_recv len:%d,ret:%d", len, ret);
+	if (0 == ret && len == sizeof(head))
+	{
+		bzero(&head, sizeof(head));
+		head_codec.decode((uint8_t*)buf, sizeof(head), &head);
+		LOG_INFO("nio_recv head:%d,id:%d len:%d", len, head.msg_id_, head.len_);
+		len = nio_recv(fd, buf, head.len_, &ret);
+		rsponse_result result;
+		std::istringstream ss;
+		ss.rdbuf()->pubsetbuf((char*)buf, head.len_);
+		result.ParseFromIstream(&ss);
+		if (!result.has_code())
+		{
+			LOG_WARNNING("there is no code field in message rsponse_result.");
+		}
+		else
+		{
+			if (result.code())
+			{
+				LOG_ERROR("recv error.");
+			}
+			else
+			{
+				LOG_INFO("recv ok");
+			}
+		}
+	}
+	//TODO:check response
 #endif
 	delete[] buf;
 
 	return ret;
 }
+
+
+
+void send_completeFrame(int fd)
+{
+	protocol_head_t head;
+	bzero(&head, sizeof(head));
+	encode_head(head, EEVENTID_SEND_COMPLETE_REQ, 0);
+	int len = sizeof(protocol_head_t);
+	char* buf = new char[len];
+	bzero(buf, len);
+	protocol_head_codec_t head_codec;
+	head_codec.encode(&head, (uint8_t*)buf, sizeof(protocol_head_t));
+	int ret = nio_write(fd, buf, len);
+	LOG_INFO("Send file file complete");
+}
+
+
 
 int main(int argc, char** argv)
 {
@@ -159,7 +198,7 @@ int main(int argc, char** argv)
 
 	//step 2 cal md5, file size 
 	std::string strFileName = argv[1];
-	std::string strMd5 =  md5file(strFileName.c_str());
+	std::string strMd5 = md5file(strFileName.c_str());
 	LOG_INFO("Send file md5:%s", strMd5.c_str());
 	size_t  fileLength = getfile_length(strFileName.c_str());
 	if (fileLength <= 0)
@@ -183,20 +222,25 @@ int main(int argc, char** argv)
 	}
 	LOG_INFO("connect:%s:%s ok!", argv[2], argv[3]);
 
-	set_socket_non_block(sockfd);
+	//set_socket_non_block(sockfd);
 
 	//step5 send file info
 	//TODO: 有点问题,文件长度 原来读取的是比较大的长度 size_t ,现在当成 uint32传到对方,待改???
 	send_file_info(strFileName, strMd5, fileLength, nProcess, sockfd);
-	LOG_INFO("Close socket:%d ok!", sockfd);
-	close(sockfd);
-	cout << "Send file info ok, close fd:" << sockfd << endl;
+	cout << "Send file info ok!" << endl;
 #endif
 	//step6  map file
 	CFileMap fm(strFileName.c_str(), O_RDONLY, fileLength);
 	if (!fm.CheckFileMapStatus())
 	{
 		perror("Map file failed!!");
+		exit(1);
+	}
+	//create eventfd
+	int efd = eventfd(0, 0);
+	if (-1 == efd)
+	{
+		LOG_ERROR("Create eventfd failed!!");
 		exit(1);
 	}
 	//step5 fork sub process to send file 
@@ -225,7 +269,7 @@ int main(int argc, char** argv)
 	{
 		LOG_INFO("parent id is %d", getpid());
 		LOG_INFO("file transport client start successful!");
-		
+
 		//parent create evenfd for statices the send results
 		//eventfd怎么接收
 		//check_is_send_over();
@@ -261,12 +305,34 @@ int main(int argc, char** argv)
 				processid = fork();  // restart an child process.
 				if (processid == 0) break;  // break while.
 			}
+		}
+		//TODO:最后发送一条发完的信息,接收方收到后就认为文件已经发送完毕就可以检查md5
+		//TODO:block read
+		uint64_t u = 0;
+		ssize_t s = read(efd, &u, sizeof(uint64_t));
+		if (s != sizeof(uint64_t))
+		{
+			LOG_ERROR("parent process read data from eventfd failed!");
+		}
+		else
+		{
+			LOG_INFO("parent process read data from eventfd:%d", u);
+		}
+		//.....//TODO:检查进程数量跟eventfd读到的值个数一直,认为发送完毕,发送一条结束消息
+		if (u == nProcess)
+		{
+			send_completeFrame(sockfd);
+			LOG_INFO("Close socket:%d ok!", sockfd);
+			close(sockfd);
+		}
+		for (;;)
+		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 	}
 	if (0 == processid)//child process
 	{
-		LOG_INFO("this is child process pid=%d (parentid)=%d", getpid(), getppid());
+		LOG_INFO("this is child process pid=%d (parentid)=%d,piece=%d", getpid(), getppid(), nPiece);
 
 		//child conenct server
 		sockfd = init_client(argv[2], atoi(argv[3]));
@@ -278,7 +344,7 @@ int main(int argc, char** argv)
 		}
 		LOG_INFO("child process connect:%s:%s ok!", argv[2], argv[3]);
 
-		set_socket_non_block(sockfd);
+		//set_socket_non_block(sockfd);
 
 		//child process send pieces
 		//读取文件的开始位置
@@ -287,9 +353,8 @@ int main(int argc, char** argv)
 		//设置偏移位置,按照偏移位置进行读取文件
 		fm.seek(ofset, SEEK_SET);
 		//每块数据分开大小发送,4*1024 或者是1个MCU
-		char *buf = nullptr; 
-		char resp[1024];
-		for (int idx = 0;;++idx)
+		char *buf = nullptr;
+		for (int idx = 0;; ++idx)
 		{
 			int len = fm.read(buf, EACH_FRAME_LENGTH);
 			if (len > 0)
@@ -298,7 +363,7 @@ int main(int argc, char** argv)
 				cout << "Process:" << getpid() << ", Piece:" << nPiece << " ,idx:" << idx << ", len=" << len << endl;
 				protocol_head_t head;
 				bzero(&head, sizeof(head));
-				encode_head(head, EEVENTID_SENDD_FILEDATA_REQ, msg.size());
+				encode_head(head, EEVENTID_SEND_FILEDATA_REQ, msg.size());
 				int packlen = sizeof(protocol_head_t) + msg.size();
 				char* pSendBuff = new char[packlen];
 				bzero(pSendBuff, packlen);
@@ -307,12 +372,67 @@ int main(int argc, char** argv)
 				protocol_head_codec_t head_codec;
 				head_codec.encode(&head, (uint8_t*)pSendBuff, sizeof(protocol_head_t));
 				memcpy(pSendBuff + sizeof(protocol_head_t), msg.data(), msg.size());
-				len = nio_write(sockfd, pSendBuff, packlen);
-				delete[] pSendBuff;
-				LOG_INFO("Send file content Data len:%d", len);
-				//TODO: recv response, header + body
-				int ret = 0;
-				//nio_recv(sfd, resp, sizeof(resp), &ret);
+
+				char* pBuffer = nullptr;
+				while (true)
+				{
+					len = nio_write(sockfd, pSendBuff, packlen);
+					LOG_INFO("Send file content Data len:%d", len);
+
+					//TODO: recv response, header + body
+					int ret = 0;
+					bzero(&head, sizeof(head));
+					len = nio_recv(sockfd, (char*)&head, sizeof(head), &ret);
+					LOG_INFO("nio_recv: len:%d, ret:%d", len, ret);
+					if (ret != 0 || len != sizeof(head))
+					{
+						cout << "Recv head error, send again..." << endl;
+						//continue;
+					}
+					protocol_head_t headDecode;
+					bzero(&headDecode, sizeof(headDecode));
+					head_codec.decode((uint8_t*)&head, sizeof(head), &headDecode);
+					LOG_INFO("nio_recv head:%d,id:%d len:%d", len, headDecode.msg_id_, headDecode.len_);
+					if (nullptr == pBuffer)
+					{
+						pBuffer = new char[headDecode.len_];
+					}
+					len = nio_recv(sockfd, pBuffer, headDecode.len_, &ret);
+					LOG_INFO("nio_recv:%d,id:%d len:%d", len, headDecode.msg_id_, headDecode.len_);
+					rsponse_result result;
+					std::istringstream ss;
+					ss.rdbuf()->pubsetbuf((char*)pBuffer, headDecode.len_);
+					result.ParseFromIstream(&ss);
+					if (!result.has_code())
+					{
+						LOG_WARNNING("there is no code field in message rsponse_result.");
+					}
+					else
+					{
+						if (result.code())
+						{
+							LOG_ERROR("recv error.");
+							cout << "recv error" << endl;
+							continue;
+						}
+						else
+						{
+							LOG_INFO("recv ok");
+							cout << "recv ok" << endl;
+							break;;
+						}
+					}
+					//TODO:
+					break;
+				}
+				if (nullptr != pBuffer)
+				{
+					delete[] pBuffer;
+				}
+				if (nullptr != pSendBuff)
+				{
+					delete[] pSendBuff;
+				}
 			}
 			else
 			{
@@ -320,21 +440,22 @@ int main(int argc, char** argv)
 			}
 		}
 		close(sockfd);
+		uint64_t u = 1;
+		ssize_t s = write(efd, &u, sizeof(uint64_t));
+		if (s != sizeof(uint64_t))
+		{
+			LOG_ERROR("Write eventfd error!");
+		}
 		LOG_INFO("child process exit");
 	}
 
-	for (;;)
-	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
-	}
-	
-	//event怎么通知, 应该还要通知发送的状态,发送了多少了, 
-	//记录发送时间
-	//eventfd notice parent process
-	cout << "File send over" << endl;
-
 	return 1;
 }
+
+//event怎么通知, 应该还要通知发送的状态,发送了多少了, 
+//记录发送时间
+//eventfd notice parent process
+//cout << "File send over" << endl;
 
 //client 思路,就是考虑多进程方式
 //后面可以改造为reactor方式也是可以的

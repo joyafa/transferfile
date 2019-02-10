@@ -14,7 +14,7 @@ iEvent* binrary_protocol_codec_t::decode(uint16_t mid, uint8_t* buffer, uint32_t
     case EEVENTID_SEND_GENERAL_REQ:
         ev = decode_file_generalinfo(buffer, size);
         break;
-    case EEVENTID_SENDD_FILEDATA_REQ:
+    case EEVENTID_SEND_FILEDATA_REQ:
         //ev = decode_file_writefile_data(buffer, size);
         break;
     default:

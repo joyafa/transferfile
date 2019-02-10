@@ -53,6 +53,7 @@
     <ClInclude Include="client\protocol_head.h" />
     <ClInclude Include="client\protocol.pb.h" />
     <ClInclude Include="client\fmmap.h" />
+    <ClInclude Include="client\eventtype.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="third\log\include\Makefile">

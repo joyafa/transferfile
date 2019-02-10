@@ -73,7 +73,7 @@ bool Interface::add_server_socket(int socket)
 		return false;
 	}
 
-	if (!add_epoll_event(_server_socket, EPOLLIN | EPOLLOUT | EPOLLET))
+	if (!add_epoll_event(_server_socket, EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLET))// EPOLLIN | EPOLLOUT | EPOLLET))
 	{
 		LOG_ERROR("cannot add_epoll_event!");
 		return false;
@@ -109,7 +109,7 @@ bool Interface::accept_client(int sfd)
         LOG_ERROR("cannot set flags!");
     }
 
-    if (!add_epoll_event(client_fd, EPOLLET | EPOLLIN))
+    if (!add_epoll_event(client_fd, EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLET))//EPOLLET | EPOLLIN))
     {
 		LOG_ERROR("add_epoll_event err!\n");
 
@@ -133,7 +133,7 @@ void Interface::run()
             if ((events[i].events & EPOLLERR) || (events[i].events & EPOLLHUP)
                 || !(events[i].events & EPOLLIN))
             {
-                LOG_ERROR("server_socket fd error!\n");
+                LOG_ERROR("server_socket fd error: event:%d", events[i].events);
                 ::close(events[i].data.fd);
                 continue;
 

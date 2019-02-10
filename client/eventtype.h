@@ -15,7 +15,7 @@ enum EventID
 	EEVENTID_SEND_GENERAL_RSP           = 0x01,
 	EEVENTID_SEND_FILEDATA_REQ          = 0x02,//发送文件内容
 	EEVENTID_SEND_FILEDATA_RSP          = 0x03,
-	EEVENTID_SEND_COMPLETE_REQ,                //发送完成,没有包体
+	EEVENTID_SEND_COMPLETE_REQ          ,      //发送完成,没有包体
 	EEVENTID_UNKOWN                     = 0xFFFF
 };
 

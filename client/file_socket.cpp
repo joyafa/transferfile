@@ -105,6 +105,7 @@ int nio_write(int fd, char* buf, int len)
 int nio_recv(int sockfd, char* buffer, int length, int* ret)
 {
 	int idx = 0;
+	*ret = 0;
 
 	while (1)
     {

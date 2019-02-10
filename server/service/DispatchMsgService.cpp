@@ -16,7 +16,7 @@ DispatchMsgService::DispatchMsgService()
 	codecs_[JSON_PROTOCOL_TYPE]   = nullptr;
 	codecs_[PB_PROTOCOL_TYPE]     = new protobuf_protocol_codec_t;
 	codecs_[FB_PROTOCOL_TYPE]     = nullptr;
-	codecs_[BINARY_PROTOCOL_TYPE] = new binrary_protocol_codec_t;
+	codecs_[BINARY_PROTOCOL_TYPE] = nullptr;// new binrary_protocol_codec_t;
 }
 
 DispatchMsgService::~DispatchMsgService()
@@ -89,45 +89,42 @@ int DispatchMsgService::process(const file_socket_t fd)
 		LOG_ERROR("It is not a valid package head!!!");
 		return 0;
 	}
-	char* pBuf = new char[proto_head.len_];
-	bzero(pBuf, proto_head.len_);
-	result = 1;
-	cnt = nio_recv(fd, pBuf, proto_head.len_, &result);
-	if (result <= 0)
+	char* pBuf = nullptr;
+	if (proto_head.len_ > 0)
 	{
-		LOG_ERROR("nio_recv: %d", result);
-		delete[] pBuf;
-		return 0;
+		pBuf = new char[proto_head.len_];
+		bzero(pBuf, proto_head.len_);
+		result = 1;
+		cnt = nio_recv(fd, pBuf, proto_head.len_, &result);
+		if (result <= 0)
+		{
+			LOG_ERROR("nio_recv: %d", result);
+			delete[] pBuf;
+			return 0;
+		}
+		//TODO:郁闷死, 有时能发过来有时不行啊, 这个 子进程建立desocket 总是是不是收不到accept不到
+		LOG_INFO("recv body: len: %d <==>%d", cnt, proto_head.len_);
 	}
-	//TODO:郁闷死, 有时能发过来有时不行啊, 这个 子进程建立desocket 总是是不是收不到accept不到
-	LOG_INFO("recv body: len: %d <==>%d",  cnt, proto_head.len_);
 	if ((proto_head.type_ >= JSON_PROTOCOL_TYPE)
 		&& (proto_head.type_ <= BINARY_PROTOCOL_TYPE)
 		&& (codecs_[proto_head.type_] != NULL))
 	{
-		iEvent* ev = codecs_[proto_head.type_]->decode(proto_head.msg_id_, (uint8_t* )pBuf, proto_head.len_);
-
-		// TODO : encode rsp event to
-		// TODO : send response,
-		// nio_write
-
-		//mmap file map
-		//if (rsp)
-		//{
-		//	//TODO: buffer size  maybe too small
-		//	bool ret = codecs_[proto_head.type_]->encode(rsp, (u8*)buf, BUF_SIZE);
-		//	if (ret)
-		//	{
-		//		//rsp body
-		//		//rsp header
-		//		proto_head.msg_id_ = rsp->get_eid();
-		//		//TODO:len buf 
-		//		nio_write(events[i].data.fd, buf, BUF_SIZE);
-		//	}
-
-		//}
-
-		//应答
+		iEvent* rsp = codecs_[proto_head.type_]->decode(proto_head.msg_id_, (uint8_t* )pBuf, proto_head.len_);
+		LOG_INFO("decode:%p", rsp);
+		if (rsp)
+		{
+			char* rspBuff = nullptr;
+			uint32_t len = 0;
+			bool ret = codecs_[proto_head.type_]->encode(rsp, (uint8_t** )&rspBuff, len);
+			LOG_INFO("encode:%d,%p,%d", ret, rspBuff,len);
+			if (ret)
+			{
+				LOG_INFO("response len:%d, bodylen:%d,id:%d",len, ((protocol_head_t *)rspBuff)->len_, ((protocol_head_t *)rspBuff)->msg_id_);
+				nio_write(fd, rspBuff, len);
+				delete[] rspBuff;
+			}
+			delete rsp;
+		}
 	}
 	else
 	{
